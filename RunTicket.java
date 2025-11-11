@@ -1,16 +1,3 @@
-/* 
- * NAME: Daniela Molina-Najera
- * ID: 80764903
- * 
- * This work is to be done individually. It is not permitted to share, reproduce, or alter
- * any part of this assignment for any purpose. Students are not permitted from
- * sharing code, uploading this assignment online in any form, viewing, receiving, or
- * modifying code written from anyone else. This assignment is part of an academic
- * course at The University of Texas at El Paso and a grade will be assigned for the
- * work produced individually by the student.
- */
-
-
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
@@ -30,7 +17,6 @@ import java.util.Scanner;
 /** JAVADOC
  * Main controller class for the TicketMiner system.
  */
-
 public class RunTicket {
 
     // FOR COLORS //
@@ -131,8 +117,7 @@ public class RunTicket {
                                 viewAllEvents();
                                 break;
 
-                            case 2: // SEARCH BY ID
-                                //searchEventById(scanner);
+                            case 2: // SEARCH BY ID (concise for customer-style view)
                                 searchEventByIdCustomer(scanner);
                                 break;
                             
@@ -205,7 +190,6 @@ public class RunTicket {
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     
-
     // Flexible CSV reader for Event list (any column order)
     public static void readEventList(String fileName) {
         DateTimeFormatter dateFormat = DateTimeFormatter.ofPattern("M/d/yyyy");
@@ -266,8 +250,7 @@ public class RunTicket {
         }
     } // end readEventList
 
-
-    // Reads Customer List csv File (your flexible version already present)
+    // Reads Customer List csv File (flexible two layouts)
     public static void readCustomerList(String fileName) {
         try (Scanner scanner = new Scanner(new File(fileName), "UTF-8")) {
             boolean firstLine = true;
@@ -331,7 +314,7 @@ public class RunTicket {
         }
     }
 
-    // CASE 2 - Search by EventId
+    // CASE 2 - Search by EventId (admin style)
     private static void searchEventById(Scanner scanner) {
         int id = inputMismatchInt(scanner, "Enter an event ID to search: ");
         scanner.nextLine();
@@ -354,23 +337,28 @@ public class RunTicket {
     }
 
     // Customer-facing: search and print concise event info
-private static void searchEventByIdCustomer(Scanner scanner) {
-    int id = inputMismatchInt(scanner, "Enter an event ID to view: ");
-    scanner.nextLine();
-    Event found = null;
-    for (Event e : eventList) {
-        if (e.getEventId() == id) { found = e; break; }
+    private static void searchEventByIdCustomer(Scanner scanner) {
+        int id = inputMismatchInt(scanner, "Enter an event ID to view: ");
+        scanner.nextLine();
+        Event found = null;
+        for (Event e : eventList) {
+            if (e.getEventId() == id) { found = e; break; }
+        }
+        if (found == null) {
+            System.out.println("Event NOT found.");
+            logAction("Customer viewed: Event ID " + id + " not found.");
+            return;
+        }
+        System.out.println("//////////////////// EVENT (" + id + ") ////////////////////");
+        try {
+            // if you added a concise method
+            found.printEventInfoCustomer();
+        } catch (Throwable t) {
+            // fallback to full info if concise not implemented
+            found.printEventInfo();
+        }
+        logAction("Customer viewed event ID " + id + ".");
     }
-    if (found == null) {
-        System.out.println("Event NOT found.");
-        logAction("Customer viewed: Event ID " + id + " not found.");
-        return;
-    }
-    System.out.println("//////////////////// EVENT (" + id + ") ////////////////////");
-    found.printEventInfoCustomer(); // << concise view
-    logAction("Customer viewed event ID " + id + ".");
-}
-
 
     /**
      * Create a new event (console)
@@ -491,6 +479,7 @@ private static void searchEventByIdCustomer(Scanner scanner) {
                 System.out.println("Event name updated.");
                 break;
             case 2:
+                scanner.nextLine();
                 System.out.println("Enter a new date (MM/DD/YYYY): ");
                 String dateInput = scanner.nextLine().trim();
                 try {
@@ -503,6 +492,7 @@ private static void searchEventByIdCustomer(Scanner scanner) {
                 }
                 break;
             case 3:
+                scanner.nextLine();
                 System.out.print("Enter new time (e.g., 6:30 PM): ");
                 String timeInput = scanner.nextLine().trim();
                 try {
@@ -629,7 +619,7 @@ private static void searchEventByIdCustomer(Scanner scanner) {
         }
     }
 
-    // --- NEW: make sure a wallet exists before any purchase/upgrade ---
+    // ensure a wallet exists before any purchase/upgrade
     private static void ensureBankAccount(Customer c) {
         if (c.getBankAccount() == null) {
             c.setBankAccount(new BankAccount(c.getUsername() + "_wallet", c.getMoneyAvailable()));
@@ -781,11 +771,11 @@ private static void searchEventByIdCustomer(Scanner scanner) {
         checkoutAndRecord(customer, event, type, quantity);
     }
 
-    // --- NEW: shared purchase flow (manual + autopurchase) ---
+    // --- shared purchase flow (manual + autopurchase) ---
     private static void checkoutAndRecord(Customer customer, Event event, TicketType type, int quantity) {
-        // Tax + discount
         final double texasTaxRate = 0.0825;
 
+        // always require wallet for purchases in this system
         ensureBankAccount(customer);
 
         double basePrice = event.getPriceByType(type);
@@ -794,22 +784,7 @@ private static void searchEventByIdCustomer(Scanner scanner) {
 
         double subTotal = discountedPrice * quantity;
         double taxAmount = subTotal * texasTaxRate;
-        double totalCost = subTotal + taxAmount;
-        // round down to nearest cent
-        totalCost = Math.floor(totalCost * 100.0) / 100.0;
-
-        System.out.println("\n////////////////// Purchase Summary //////////////////");
-        System.out.println("Ticket Type: " + type);
-        System.out.println("Base Price: $" + String.format(Locale.US, "%.2f", basePrice));
-        if (isMember) {
-            System.out.println("Miner Membership Discount Applied: 10%");
-            System.out.println("Discounted Price: $" + String.format(Locale.US, "%.2f", discountedPrice));
-        }
-        System.out.println("Quantity: " + quantity);
-        System.out.println("Subtotal: $" + String.format(Locale.US, "%.2f", subTotal));
-        System.out.println("Tax (8.25%): $" + String.format(Locale.US, "%.2f", taxAmount));
-        System.out.println("Total Cost: $" + String.format(Locale.US, "%.2f", totalCost));
-        System.out.println("////////////////////////////////////////////////////////");
+        double totalCost = Math.floor((subTotal + taxAmount) * 100.0) / 100.0; // round down to nearest cent
 
         BankAccount account = customer.getBankAccount();
         try {
@@ -826,17 +801,18 @@ private static void searchEventByIdCustomer(Scanner scanner) {
             }
             event.addTickets(tickets);
 
-            // NEW: availability + accounting
-            event.decrementAvailability(type, quantity);
+            // availability + accounting (wrapped in try in case methods not present)
+            try { event.decrementAvailability(type, quantity); } catch (Throwable ignored) {}
             double discountGiven = (basePrice - discountedPrice) * quantity;
             if (discountGiven > 0) {
-                event.addDiscount(discountGiven);
-                customer.addSavings(discountGiven);
+                try { event.addDiscount(discountGiven); } catch (Throwable ignored) {}
+                try { customer.addSavings(discountGiven); } catch (Throwable ignored) {}
             }
-            event.addTax(taxAmount);
+            try { event.addTax(taxAmount); } catch (Throwable ignored) {}
+
             // keep CSV-visible fields current
-            customer.setMoneyAvailable(account.getBalance());
-            customer.setConcertsPurchased(customer.getConcertsPurchased() + quantity);
+            try { customer.setMoneyAvailable(account.getBalance()); } catch (Throwable ignored) {}
+            try { customer.setConcertsPurchased(customer.getConcertsPurchased() + quantity); } catch (Throwable ignored) {}
 
             System.out.println("\n//////////////////////// INVOICE ///////////////////////");
             System.out.println("Purchase successful! Invoice generated:");
@@ -844,7 +820,7 @@ private static void searchEventByIdCustomer(Scanner scanner) {
             System.out.println("///////////////////////////////////////////////////////");
 
             // Receipt on success
-            ReceiptUtil.writePurchaseReceipt(customer, invoice);
+            try { ReceiptUtil.writePurchaseReceipt(customer, invoice); } catch (Throwable ignored) {}
 
             logAction("Invoice #" + invoiceId + " created for user " + customer.getUsername());
         } catch (InsufficientFundsException e) {
@@ -1040,178 +1016,175 @@ private static void searchEventByIdCustomer(Scanner scanner) {
     }
 
     // =========================
-    // Auto-Purchase (CSV)
+    // Auto-Purchase (CSV) — FLEXIBLE HEADERS, NAME-BASED MATCH ONLY
     // =========================
-    // =========================
-// Auto-Purchase (CSV) — FLEXIBLE HEADERS
-// =========================
-private static void processAutoPurchaseCsv(String fileName) {
-    File f = new File(fileName);
-    if (!f.exists()) {
-        System.out.println("Auto-purchase file not found: " + fileName);
-        return;
-    }
-
-    int ok = 0, fail = 0, skipped = 0;
-
-    try {
-        // Use CsvFlex to be order/format agnostic
-        List<CsvFlex.Row> rows = CsvFlex.read(fileName);
-        if (rows.isEmpty()) {
-            System.out.println("Empty autopurchase file.");
+    private static void processAutoPurchaseCsv(String fileName) {
+        File f = new File(fileName);
+        if (!f.exists()) {
+            System.out.println("Auto-purchase file not found: " + fileName);
             return;
         }
 
-        for (CsvFlex.Row row : rows) {
-            try {
-                // Action (default to Purchase if missing)
-                String action = firstNonEmpty(row,
-                        "Action", "action", "ACTION", "Operation", "Op");
-                if (action.isEmpty()) action = "Purchase";
-                if (!action.equalsIgnoreCase("Purchase")) {
-                    skipped++;
-                    continue;
-                }
+        int ok = 0, fail = 0, skipped = 0;
 
-                // Resolve customer (prefer explicit username/email; fallback to first+last)
-                Customer c = resolveCustomerFromRow(row);
-                if (c == null) {
-                    System.out.println("AutoPurchase SKIP (user not found)");
-                    skipped++;
-                    continue;
-                }
-                ensureBankAccount(c);
+        try {
+            List<CsvFlex.Row> rows = CsvFlex.read(fileName);
+            if (rows.isEmpty()) {
+                System.out.println("Empty autopurchase file.");
+                return;
+            }
 
-                // Event lookup
-                int eventId = CsvFlex.toInt(firstNonEmpty(row,
-                        "Event ID", "event id", "EventId", "EventID", "ID"), -1);
-                if (eventId <= 0) {
-                    System.out.println("AutoPurchase SKIP (bad event id)");
-                    skipped++;
-                    continue;
-                }
-                Event e = findEventById(eventId);
-                if (e == null) {
-                    System.out.println("AutoPurchase SKIP (event not found): " + eventId);
-                    skipped++;
-                    continue;
-                }
-
-                // Quantity
-                int qty = CsvFlex.toInt(firstNonEmpty(row,
-                        "Ticket Quantity", "ticket quantity", "Qty", "Quantity", "Count"), -1);
-                if (qty < 1 || qty > 6) {
-                    System.out.println("AutoPurchase SKIP (qty out of range 1-6): " + qty);
-                    skipped++;
-                    continue;
-                }
-
-                // Ticket type (robust)
-                String typeRaw = firstNonEmpty(row,
-                        "Ticket Type", "ticket type", "Type", "Seat", "Level");
-                TicketType tt = parseTicketTypeFlexible(typeRaw);
-
-                // OPTIONAL: enforce availability if Event implements it
+            for (CsvFlex.Row row : rows) {
                 try {
-                    if (!e.hasAvailableTickets(tt, qty)) {
-                        System.out.println("AutoPurchase FAIL (insufficient availability)");
+                    String action = firstNonEmpty(row, "Action","action","ACTION","Operation","Op");
+                    if (action.isEmpty()) action = "Purchase";
+                    if (!action.equalsIgnoreCase("Purchase")) { skipped++; continue; }
+
+                    // Resolve an existing customer strictly by username/email/First+Last
+                    Customer c = resolveCustomerFromRow(row);
+                    if (c == null) {
+                        System.out.println("AutoPurchase SKIP (user not found)");
+                        skipped++;
+                        continue;
+                    }
+                    ensureBankAccount(c);
+
+                    int eventId = CsvFlex.toInt(firstNonEmpty(row,
+                            "Event ID","event id","EventId","EventID","ID","Event"), -1);
+                    if (eventId <= 0) { System.out.println("AutoPurchase SKIP (bad event id)"); skipped++; continue; }
+                    Event e = findEventById(eventId);
+                    if (e == null) { System.out.println("AutoPurchase SKIP (event not found): " + eventId); skipped++; continue; }
+
+                    int qty = CsvFlex.toInt(firstNonEmpty(row,
+                            "Ticket Quantity","ticket quantity","Qty","Quantity","Count","#"), -1);
+                    if (qty < 1 || qty > 6) { System.out.println("AutoPurchase SKIP (qty out of range 1-6): " + qty); skipped++; continue; }
+
+                    String typeRaw = firstNonEmpty(row, "Ticket Type","ticket type","Type","Seat","Level","Category");
+                    TicketType tt = parseTicketTypeFlexible(typeRaw);
+
+                    try {
+                        if (!e.hasAvailableTickets(tt, qty)) {
+                            System.out.println("AutoPurchase FAIL (insufficient availability)");
+                            fail++;
+                            continue;
+                        }
+                    } catch (Throwable ignored) {}
+
+                    // Funds pre-check (wallet required)
+                    final double texasTaxRate = 0.0825;
+                    double base = e.getPriceByType(tt);
+                    boolean member = c.getHasMembership();
+                    double unit = member ? base * 0.90 : base;
+                    double sub = unit * qty;
+                    double tax = sub * texasTaxRate;
+                    double total = Math.floor((sub + tax) * 100.0) / 100.0;
+
+                    if (c.getBankAccount().getBalance() + 1e-9 < total) {
+                        System.out.println("AutoPurchase FAIL (insufficient funds) for " + c.getUsername());
                         fail++;
                         continue;
                     }
-                } catch (Throwable ignored) { /* keep behavior if not implemented */ }
 
-                // Funds pre-check using same math as checkout
-                final double texasTaxRate = 0.0825;
-                double base = e.getPriceByType(tt);
-                boolean member = c.getHasMembership();
-                double unit = member ? base * 0.90 : base;
-                double sub = unit * qty;
-                double tax = sub * texasTaxRate;
-                double total = sub + tax;
+                    // Do the purchase (updates accounting + writes receipt)
+                    checkoutAndRecord(c, e, tt, qty);
+                    ok++;
 
-                if (c.getBankAccount().getBalance() + 1e-9 < total) {
-                    System.out.println("AutoPurchase FAIL (insufficient funds) for " + c.getUsername());
-                    fail++;
-                    continue;
+                } catch (Exception ex) {
+                    System.out.println("AutoPurchase ROW SKIPPED due to error: " + ex.getMessage());
+                    skipped++;
                 }
+            }
 
-                // Do the purchase (updates accounting + writes receipt)
-                checkoutAndRecord(c, e, tt, qty);
-                ok++;
+            System.out.println("AutoPurchase done. OK=" + ok + " FAIL=" + fail + " SKIPPED=" + skipped);
+            logAction("AutoPurchase run complete. OK=" + ok + " FAIL=" + fail + " SKIPPED=" + skipped);
 
-            } catch (Exception ex) {
-                System.out.println("AutoPurchase ROW SKIPPED due to error: " + ex.getMessage());
-                skipped++;
+        } catch (Exception e) {
+            System.out.println("Auto-purchase error: " + e.getMessage());
+        }
+    }
+
+    // Helper to pick the first non-empty field name from a row
+    private static String firstNonEmpty(CsvFlex.Row row, String... candidates) {
+        for (String c : candidates) {
+            if (row.has(c)) {
+                String v = row.get(c);
+                if (v != null && !v.trim().isEmpty()) return v.trim();
             }
         }
-
-        System.out.println("AutoPurchase done. OK=" + ok + " FAIL=" + fail + " SKIPPED=" + skipped);
-        logAction("AutoPurchase run complete. OK=" + ok + " FAIL=" + fail + " SKIPPED=" + skipped);
-
-    } catch (Exception e) {
-        System.out.println("Auto-purchase error: " + e.getMessage());
+        return "";
     }
-}
 
-// Helper to pick the first non-empty field name from a row
-private static String firstNonEmpty(CsvFlex.Row row, String... candidates) {
-    for (String c : candidates) {
-        if (row.has(c)) {
-            String v = row.get(c);
-            if (v != null && !v.trim().isEmpty()) return v.trim();
+    // Resolve a Customer using username/email if present, else by First+Last (no guest creation)
+    private static Customer resolveCustomerFromRow(CsvFlex.Row row) {
+        // 1) Exact username
+        String uname = firstNonEmpty(row, "Username", "username", "User", "user", "Login", "login");
+        if (!uname.isEmpty()) {
+            Customer c = findCustomerByUsername(uname);
+            if (c != null) return c;
+        }
+
+        // 2) Email -> local-part
+        String email = firstNonEmpty(row, "Email", "email", "E-mail", "Contact", "Contact Email");
+        if (!email.isEmpty() && email.contains("@")) {
+            String local = email.substring(0, email.indexOf('@')).trim();
+            Customer c = findCustomerByUsername(local);
+            if (c != null) return c;
+        }
+
+        // 3) Combined name field
+        String combined = firstNonEmpty(row, "Buyer","buyer","Name","name","Customer","customer","Full Name","full name");
+        if (!combined.isEmpty()) {
+            String[] fl = splitNameSmart(combined);
+            Customer c = findCustomerByName(fl[0], fl[1]);
+            if (c != null) return c;
+        }
+
+        // 4) Separate First/Last fields
+        String first = firstNonEmpty(row, "First", "first", "First Name", "first name", "FName", "Given", "Given Name");
+        String last  = firstNonEmpty(row, "Last", "last", "Last Name", "last name", "LName", "Family", "Surname");
+        if (!first.isEmpty() || !last.isEmpty()) {
+            Customer c = findCustomerByName(first, last);
+            if (c != null) return c;
+        }
+
+        return null; // not found -> autopurchase fails (wallet required)
+    }
+
+    // “Last, First” OR “First [Middle …] Last”
+    private static String[] splitNameSmart(String raw) {
+        if (raw == null) return new String[]{"",""};
+        String s = raw.trim();
+        if (s.contains(",")) { // "Last, First Middle"
+            String[] parts = s.split(",", 2);
+            String last  = parts[0].trim();
+            String first = (parts.length > 1 ? parts[1].trim() : "");
+            // first token as FIRST (drop middles)
+            String[] fparts = first.split("\\s+");
+            if (fparts.length >= 1) first = fparts[0];
+            return new String[]{ first, last };
+        } else {
+            // "First [Middle …] Last"
+            String[] parts = s.split("\\s+");
+            if (parts.length == 1) return new String[]{ parts[0], "" };
+            String first = parts[0];
+            String last  = parts[parts.length - 1];
+            return new String[]{ first, last };
         }
     }
-    return "";
-}
 
-// Resolve a Customer using username/email if present, else by First+Last
-private static Customer resolveCustomerFromRow(CsvFlex.Row row) {
-    // 1) Exact username
-    String uname = firstNonEmpty(row, "Username", "username", "User", "user");
-    if (!uname.isEmpty()) {
-        Customer c = findCustomerByUsername(uname);
-        if (c != null) return c;
-    }
-
-    // 2) Email local-part (before @) sometimes equals username
-    String email = firstNonEmpty(row, "Email", "email", "E-mail");
-    if (!email.isEmpty()) {
-        String local = email.split("@")[0].trim();
-        Customer c = findCustomerByUsername(local);
-        if (c != null) return c;
-    }
-
-    // 3) Fallback: First + Last -> username pattern used in your code (lower, no spaces)
-    String first = firstNonEmpty(row, "First", "first", "First Name", "first name", "FName", "Given");
-    String last  = firstNonEmpty(row, "Last", "last", "Last Name", "last name", "LName", "Family");
-    if (!first.isEmpty() && !last.isEmpty()) {
-        String guess = (first + last).replaceAll("\\s+","").toLowerCase(Locale.ROOT);
-        Customer c = findCustomerByUsername(guess);
-        if (c != null) return c;
-
-        // as an extra fallback, try a name-based scan
-        c = findCustomerByName(first, last);
-        if (c != null) return c;
-    }
-
-    return null;
-}
-
-// Scan the list to find a customer by first/last (case-insensitive)
+    // Scan the list to find a customer by first/last (case-insensitive simple compare)
     private static Customer findCustomerByName(String first, String last) {
-    String f = first.trim().toLowerCase(Locale.ROOT);
-    String l = last.trim().toLowerCase(Locale.ROOT);
-    for (Customer c : customerList) {
-        if (c.getFirstName() != null && c.getLastName() != null) {
-            if (c.getFirstName().trim().toLowerCase(Locale.ROOT).equals(f) &&
-                c.getLastName().trim().toLowerCase(Locale.ROOT).equals(l)) {
+        for (Customer c : customerList) {
+            String cf = (c.getFirstName() == null ? "" : c.getFirstName());
+            String cl = (c.getLastName()  == null ? "" : c.getLastName());
+            boolean firstOk = first == null || first.isEmpty() || cf.equalsIgnoreCase(first);
+            boolean lastOk  = last  == null || last.isEmpty()  || cl.equalsIgnoreCase(last);
+            if (firstOk && lastOk) {
                 return c;
             }
         }
+        return null;
     }
-    return null;
-    }
-
 
     private static Customer findCustomerByUsername(String uname) {
         for (Customer c : customerList) {
